@@ -92,9 +92,11 @@ class App:
         self.dijkstra_button.draw_buttons(WHITE)
 
 # SETUP FOR GRID MENU
-    def sketch_grid_menu(self):
+    def sketch_hotbar(self):
         self.screen.fill(GRAY)
         self.screen.blit(self.legends, (0, 0))
+
+    def sketch_grid_buttons(self):
         self.start_end_node_button.draw_buttons()
         self.wall_node_button.draw_buttons()
         self.reset_button.draw_buttons()
@@ -103,9 +105,8 @@ class App:
 
 # DRAW GRID
     def sketch_grid(self):
-        pygame.draw.rect(
-            self.screen, SPRINGGREEN, (176, 24, GRID_WIDTH, GRID_HEIGHT)
-        )
+        pygame.draw.rect(self.screen, SPRINGGREEN,
+                         (176, 24, GRID_WIDTH, GRID_HEIGHT))
         # there are 45 square pixels across on the grid [without borders!]
         # there are 28 square pixels vertically on the grid [without borders!]
         for x in range(45):
@@ -148,7 +149,7 @@ class App:
             elif self.dijkstra_button.is_over(pos):
                 self.dijkstra_button.color = LEMON
             else:
-                self.bfs_button.color, self.dfs_button.color, self.astar_button.color, self.dijkstra_button.color = ACIDLIME
+                self.bfs_button.color, self.dfs_button.color, self.astar_button.color, self.dijkstra_button.color = ACIDLIME, ACIDLIME, ACIDLIME, ACIDLIME
 
 # SETUP FOR GRID MENU BUTTONS
     def grid_menu_buttons(self, pos, event):
@@ -180,7 +181,7 @@ class App:
             elif self.exit_button.is_over(pos):
                 self.exit_button.color = MINT
             else:
-                self.start_end_node_button.color, self.wall_node_button.color, self.reset_button.color, self.visualize_button.color, self.main_menu_button.color, self.exit_button.color = AZURE
+                self.start_end_node_button.color, self.wall_node_button.color, self.reset_button.color, self.visualize_button.color, self.main_menu_button.color, self.exit_button.color = AZURE, AZURE, AZURE, AZURE, AZURE, AZURE
 
     def grid_button_keep_color(self):
         if self.state == 'draw S/E':
@@ -211,6 +212,7 @@ class App:
         sys.exit()
 
 ######################## EXECUTION FUNCTIONS ########################
+# MAIN MENU FUNCTION
     def main_menu_events(self):
         # draw background
         pygame.display.update()
@@ -219,5 +221,83 @@ class App:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running == False
-            pos = pygame.mouse.getpos()
+            pos = pygame.mouse.get_pos()
             self.main_buttons(pos, event)
+
+# PLAYSTATE FUNCTIONS
+    def grid_events(self):
+        self.sketch_hotbar()
+        self.sketch_grid_buttons()
+        self.sketch_grid()
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            pos = pygame.mouse.get_pos()
+
+            # grid button helper function
+            self.grid_menu_buttons(pos, event)
+
+# DRAWING STATE FUNCTIONS
+    #  check whether mouse is clicking on the grid
+    def draw_nodes(self):
+        self.grid_button_keep_color()
+        self.sketch_grid_buttons()
+        pygame.display.update()
+        pos = pygame.mouse.get_pos()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+
+            self.grid_menu_buttons(pos, event)
+
+            # set boundaries for where mouse pointer is valid
+            if pos[0] > GS_X and pos[0] < GE_X and pos[1] > GS_Y and pos[1] < GE_Y:
+                x_grid_pos = (pos[0] - GS_X) // 24
+                y_grid_pos = (pos[1] - GS_Y) // 24
+                print('GRID COORDINATE:', x_grid_pos, y_grid_pos)
+
+                # Get mouse position and check if clicking button. Draw if clicking. Check draw state
+                if event.type == pygame.MOUSEDOWN:
+                    self.mouse_drag = 1
+
+                    # Draw starting and end nodes. Not to be included in the drag feature
+                    if self.state == 'draw S/E' and self.start_end_checker < 2:
+                        # choose point color for grid and record the coordinate of start pos
+                        if self.start_end_checker == 0:
+                            node_color = TOMATO
+                            self.start_node_x = x_grid_pos + 1
+                            self.start_node_y = y_grid_pos + 1
+                            self.start_end_checker += 1
+
+                        # choose point color for grid and record the coordinates of end pos
+                        # also check that the ned node is not the same as the starting node
+                        elif self.start_end_checker == 1 and (x_grid_pos + 1, y_grid_pos + 1) != (self.start_node_x, self.start_node_y):
+                            node_color = ELECTRICINDIGO
+                            self.end_node_x = x_grid_pos + 1
+                            self.end_node_y = y_grid_pos + 1
+                            self.start_end_checker += 1
+
+                        else:
+                            continue
+
+                        # draw point on grid
+                        pygame.draw.rect(
+                            self.screen, node_color, (264 + x_grid_pos * 24, 24 + y_grid_pos * 24), 0)
+
+                # chceks if mouse button is no longer held down
+                elif event.type == pygame.MOUSEUP:
+                    self.mouse_drag = 0
+
+                # check if mouse is being dragged
+                if self.mouse_drag == 1:
+                    # draw wall node and append wall node coordinates to the wall node list
+                    # check if wall node being drawn/added is already in the list and check if it is overlapping start/end nodes
+                    if self.state == 'draw walls':
+                        if (x_grid_pos + 1, y_grid_pos + 1) not in self.wall_node \
+                                and (x_grid_pos + 1, y_grid_pos + 1) != (self.start_node_x, self.start_node_y) \
+                                and (x_grid_pos + 1, y_grid_pos + 1) != (self.end_node_x, self.end_node_y):
+                            pygame.draw.rect(self.screen, BLACK, (GS_X + x_grid_pos * 24, GS_Y + y_grid_pos * 24))
+                            self.wall_node.append((x_grid_pos + 1, y_grid_pos + 1))

@@ -22,7 +22,6 @@ class Buttons:
             textimg = font.render(self.text, True, GRAY)
             self.app.screen.blit(
                 textimg, (self.x + self.width/2 - textimg.get_width()/2, self.y + self.height/2 - textimg.get_height()/2))
-            # TODO: Edit here
 
     def is_over(self, pos):
         # pos is the position of the mouse, a tuple of (x, y) coordinates
